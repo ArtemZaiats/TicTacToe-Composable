@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -24,13 +26,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tictactoe_composable.ui.theme.TicTacToeComposableTheme
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlin.random.Random
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -70,11 +77,42 @@ fun TTTScreen() {
         )
     }
 
+    val onTap: (Offset) -> Unit = {
+        if (playerTurn.value) {
+            val x = (it.x / 333).toInt()
+            val y = (it.y / 333).toInt()
+            val posInMoves = y * 3 + x
+            if (moves[posInMoves]  == null) {
+                moves[posInMoves] = true
+                playerTurn.value = false
+            }
+        }
+    }
+
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(text = "Tic Tac Toe", fontSize = 30.sp, modifier = Modifier.padding(16.dp))
 
         Header(playerTurn = playerTurn.value)
-        Board(moves = moves)
+        Board(moves = moves, onTap = onTap)
+
+        if (!playerTurn.value) {
+            CircularProgressIndicator(color = Color.Red, modifier = Modifier.padding(16.dp))
+
+            val coroutineScope = rememberCoroutineScope()
+            LaunchedEffect(key1 = Unit) {
+                coroutineScope.launch {
+                    delay(1500L)
+                    while (true) {
+                        val i = Random.nextInt(9)
+                        if (moves[i] == null) {
+                            moves[i] = false
+                            playerTurn.value = true
+                            break
+                        }
+                    }
+                }
+            }
+        }
     }
 
 }
@@ -117,11 +155,16 @@ fun Header(playerTurn: Boolean) {
 }
 
 @Composable
-fun Board(moves: List<Boolean?>) {
+fun Board(moves: List<Boolean?>, onTap: (Offset) -> Unit) {
     Box(modifier = Modifier
         .aspectRatio(1f)
         .padding(32.dp)
-        .background(Color.LightGray)) {
+        .background(Color.LightGray)
+        .pointerInput(Unit) {
+            detectTapGestures(
+                onTap = onTap
+            )
+        }) {
         Column(
             verticalArrangement = Arrangement.SpaceEvenly,
             modifier = Modifier.fillMaxSize(1f)) {
